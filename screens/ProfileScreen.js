@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; // You can use other icons too
+import { getAuth } from 'firebase/auth'; // Firebase auth importu
+import { saveUserProfile } from '../firebaseFunctions'; // Firebase işlevlerini import et
 
 export default function ProfileScreen({ navigation }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [skills, setSkills] = useState('');
     const [photo, setPhoto] = useState(null);  // State to hold the photo URI
+    const [userId, setUserId] = useState(null); // Kullanıcı ID'sini tutmak için state
 
-    // Handle photo upload (either from gallery or camera)
+    // Kullanıcı ID'sini almak için useEffect kullanıyoruz
+    useEffect(() => {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            setUserId(currentUser.uid);  // Giriş yapan kullanıcının ID'sini state'e kaydediyoruz
+        } else {
+            console.log('No user is logged in');
+        }
+    }, []);
+
+    const handleSave = () => {
+        if (userId && name && description && skills) {
+            saveUserProfile(userId, name, description, skills);  // Firebase'e veriyi kaydediyoruz
+            Alert.alert('Profile saved successfully!');
+        } else {
+            Alert.alert('Please fill in all fields.');
+        }
+    };
+
+    // Fotoğraf yükleme fonksiyonu (önceki mantık burada olabilir)
     const handlePhotoUpload = async () => {
-        // Logic for photo upload (same as before)
+        // Fotoğraf yükleme işlemi buraya yazılabilir
     };
 
     return (
@@ -56,6 +79,10 @@ export default function ProfileScreen({ navigation }) {
                 multiline
             />
 
+            {/* Save Button */}
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
 
             {/* Bottom Navigation Menu */}
             <View style={styles.navBar}>
@@ -72,15 +99,13 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.navText}>Explore</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navItem} onPress={() => {
-                    alert("Logging Out")
-                    navigation.navigate('WelcomeScreen')
+                    alert("Logging Out");
+                    navigation.navigate('WelcomeScreen');
                 }}>
                     <FontAwesome name="sign-out" size={24} color="#fff" />
                     <Text style={styles.navText}>Sign Out</Text>
                 </TouchableOpacity>
             </View>
-
-
         </View>
     );
 }
@@ -122,11 +147,22 @@ const styles = StyleSheet.create({
     textArea: {
         height: 100,
     },
+    saveButton: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+        marginTop: 20,
+    },
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 18,
+    },
     navBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         position: 'absolute',
-        bottom: 0, // Adjust the bottom spacing to avoid overlap with the Sign Out button
+        bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -139,18 +175,5 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         marginTop: 5,
-    },
-    signOutButton: {
-        backgroundColor: '#ff5c5c',
-        paddingVertical: 15,
-        alignItems: 'center',
-        borderRadius: 8,
-        marginTop: 120,
-        width: 200,
-
-    },
-    signOutText: {
-        color: '#fff',
-        fontSize: 18,
     },
 });
