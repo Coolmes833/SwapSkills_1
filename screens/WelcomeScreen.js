@@ -23,7 +23,7 @@ export default function WelcomeScreen({ navigation }) {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             Alert.alert('Welcome!', `Successfully logged in as ${userCredential.user.email}`);
-            navigation.navigate('HomeScreen');
+            navigation.navigate('ProfileScreen');
         } catch (error) {
             if (error.code === 'auth/user-not-found') {
                 Alert.alert('Sign In Error', 'No user found with this email.');
