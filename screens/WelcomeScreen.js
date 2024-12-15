@@ -25,15 +25,7 @@ export default function WelcomeScreen({ navigation }) {
             Alert.alert('Welcome!', `Successfully logged in as ${userCredential.user.email}`);
             navigation.navigate('ProfileScreen');
         } catch (error) {
-            if (error.code === 'auth/user-not-found') {
-                Alert.alert('Sign In Error', 'No user found with this email.');
-            } else if (error.code === 'auth/wrong-password') {
-                Alert.alert('Sign In Error', 'Incorrect password. Please try again.');
-            } else if (error.code === 'auth/invalid-email') {
-                Alert.alert('Sign In Error', 'The email address is not valid. Please enter a valid email.');
-            } else {
-                Alert.alert('Sign In Error', `An error occurred: ${error.message}`);
-            }
+            Alert.alert('Sign In Error', `An error occurred: ${error.message}`);
         }
     };
 

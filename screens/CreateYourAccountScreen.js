@@ -13,20 +13,9 @@ export default function CreateYourAccountScreen({ navigation }) {
     const goBack = () => {
         navigation.navigate("WelcomeScreen");
     }
-    const handleSignUp = async (email, password) => {
+    const handleSignUp = async () => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const userId = userCredential.user.uid;
-            await firestore().collection('users').doc(userId).set({
-                name: '',
-                email: email,
-                skills: [],
-                wantToLearn: [],
-                createdAt: firestore.FieldValue.serverTimestamp(),
-            });
-
-
-
             alert('Thank you for joining us! Now you can log in:', userCredential.user);
             navigation.navigate('WelcomeScreen');
 
