@@ -7,6 +7,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import Explore from './screens/Explore';
 import Chat from './screens/Chat';
 import ProfileScreen from './screens/ProfileScreen';
+import ChatDetail from './screens/ChatDetail';
 
 
 
@@ -22,6 +23,7 @@ export default function App() {
         <Stack.Screen name="CreateYourAccountScreen" component={CreateYourAccountScreen} />
         <Stack.Screen name="Explore" component={Explore} />
         <Stack.Screen name="Chat" component={Chat} />
+        <Stack.Screen name="ChatDetail" component={ChatDetail} />
 
 
       </Stack.Navigator>
