@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; // You can use other icons too
 import { getAuth } from 'firebase/auth'; // Firebase auth importu
-import { saveUserProfile } from '../firebaseFunctions'; // Firebase işlevlerini import et
+import { db } from '../fireBase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen({ navigation }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [skills, setSkills] = useState('');
-    const [photo, setPhoto] = useState(null);  // State to hold the photo URI
     const [userId, setUserId] = useState(null); // Kullanıcı ID'sini tutmak için state
 
     // Kullanıcı ID'sini almak için useEffect kullanıyoruz
@@ -22,33 +22,62 @@ export default function ProfileScreen({ navigation }) {
         }
     }, []);
 
-    const handleSave = () => {
+    //Profil Kullanıcı verilerini Firestore'dan yükleme
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            if (userId) {
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        setName(userData.name || '');
+                        setDescription(userData.description || '');
+                        setSkills(userData.skills || '');
+                    } else {
+                        console.log('No such document!');
+                    }
+                } catch (error) {
+                    console.error('Error fetching user profile:', error);
+                }
+            }
+        };
+
+        fetchUserProfile();
+    }, [userId]);
+
+    // Profil Verileri Firestore'a kaydetme
+    const handleSave = async () => {
         if (userId && name && description && skills) {
-            saveUserProfile(userId, name, description, skills);  // Firebase'e veriyi kaydediyoruz
-            Alert.alert('Profile saved successfully!');
+            try {
+                const userRef = doc(db, 'users', userId);
+                await setDoc(userRef, { name, description, skills });
+                Alert.alert('Profile saved successfully!');
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                Alert.alert('Error saving profile.');
+            }
         } else {
             Alert.alert('Please fill in all fields.');
         }
     };
 
-    // Fotoğraf yükleme fonksiyonu (önceki mantık burada olabilir)
-    const handlePhotoUpload = async () => {
-        // Fotoğraf yükleme işlemi buraya yazılabilir
-    };
+
 
     return (
         <View style={styles.container}>
             {/* Profile Section */}
             <Text style={styles.header}>MY PROFILE</Text>
 
+
             {/* Profile Image */}
-            <TouchableOpacity onPress={handlePhotoUpload} style={styles.profileImageContainer}>
-                {photo ? (
-                    <Image source={{ uri: photo }} style={styles.profileImage} />
-                ) : (
-                    <FontAwesome name="camera" size={30} color="#000" />
-                )}
+            <TouchableOpacity
+                style={styles.profileImageContainer}
+                onPress={() => Alert.alert("Henüz Kodlanmadı!", "Bu özellik şu anda kullanılabilir değil.")}>
+                <FontAwesome name="camera" size={30} color="#000" />
             </TouchableOpacity>
+
 
             {/* Name */}
             <TextInput
@@ -80,7 +109,7 @@ export default function ProfileScreen({ navigation }) {
             />
 
             {/* Save Button */}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave} >
                 <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
 
@@ -106,7 +135,7 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.navText}>Sign Out</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </View >
     );
 }
 
@@ -157,6 +186,36 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: '#fff',
         fontSize: 18,
+    },
+    confirmationContainer: {
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    confirmationText: {
+        fontSize: 16,
+        marginBottom: 10,
+        color: '#333',
+    },
+    confirmButton: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        marginBottom: 10,
+    },
+    confirmButtonText: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    cancelButton: {
+        backgroundColor: '#f44336',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+    },
+    cancelButtonText: {
+        color: '#fff',
+        fontSize: 16,
     },
     navBar: {
         flexDirection: 'row',
