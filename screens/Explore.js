@@ -4,12 +4,14 @@ import Swiper from 'react-native-deck-swiper';
 import { FontAwesome } from '@expo/vector-icons';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../fireBase';
+import { auth } from '../fireBase'; // Firebase Authentication'dan auth objesini import et
 
 export default function Explore({ navigation }) {
     const swiperRef = useRef(null);
     const [users, setUsers] = useState([]);
     const [cardIndex, setCardIndex] = useState(0);
     const [loading, setLoading] = useState(true); // Veri yüklenme durumunu takip et
+    const currentUserId = auth.currentUser?.uid; // Giriş yapmış kullanıcının ID'si
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -19,7 +21,11 @@ export default function Explore({ navigation }) {
                     id: doc.id,
                     ...doc.data(),
                 }));
-                setUsers(userData);
+
+                // Giriş yapan kullanıcıyı listeden çıkar
+                const filteredUsers = userData.filter(user => user.id !== currentUserId);
+
+                setUsers(filteredUsers);
             } catch (error) {
                 console.error('Error fetching users:', error);
                 Alert.alert('Error', 'Failed to load users.');
@@ -29,7 +35,7 @@ export default function Explore({ navigation }) {
         };
 
         fetchUsers();
-    }, []);
+    }, [currentUserId]);
 
     const handleSwipeLeft = () => {
         Alert.alert('Rejected', `${users[cardIndex]?.name || 'Unknown User'} has been rejected`);
@@ -71,7 +77,6 @@ export default function Explore({ navigation }) {
                     stackSize={3}
                     verticalSwipe={false}
                 />
-
             ) : (
                 <Text>No users available to explore.</Text>
             )}
