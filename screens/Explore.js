@@ -38,11 +38,19 @@ export default function Explore({ navigation }) {
     }, [currentUserId]);
 
     const handleSwipeLeft = () => {
-        Alert.alert('Rejected', `${users[cardIndex]?.name || 'Unknown User'} has been rejected`);
+        if (cardIndex < users.length) {
+            Alert.alert('Rejected', `${users[cardIndex]?.name || 'Unknown User'} has been rejected`);
+            swiperRef.current.swipeLeft(); // Kaydırma işlemini manuel tetikle
+            setCardIndex(prevIndex => prevIndex + 1); // Sonraki karta geç
+        }
     };
 
     const handleSwipeRight = () => {
-        Alert.alert('Accepted', `${users[cardIndex]?.name || 'Unknown User'} has been accepted`);
+        if (cardIndex < users.length) {
+            Alert.alert('Accepted', `${users[cardIndex]?.name || 'Unknown User'} has been accepted`);
+            swiperRef.current.swipeRight(); // Kaydırma işlemini manuel tetikle
+            setCardIndex(prevIndex => prevIndex + 1); // Sonraki karta geç
+        }
     };
 
     // Kullanıcı kartlarının bittiği durumu kontrol etmek için
