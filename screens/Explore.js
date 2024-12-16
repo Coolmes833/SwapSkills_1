@@ -1,77 +1,97 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
 import { FontAwesome } from '@expo/vector-icons';
-
-// Sample data for users in the Explore section
-const users = [
-    { id: '1', name: 'John Doe', skills: 'React, JavaScript' },
-    { id: '2', name: 'Jane Smith', skills: 'Python, Django' },
-    { id: '3', name: 'Mike Johnson', skills: 'React Native, Firebase' },
-    { id: '4', name: 'Sarah Lee', skills: 'UI/UX Design, Sketch' },
-    { id: '5', name: 'Chris Brown', skills: 'JavaScript, Node.js' },
-];
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../fireBase';
 
 export default function Explore({ navigation }) {
-    const swiperRef = useRef(null); // Create a reference to the swiper component
+    const swiperRef = useRef(null);
+    const [users, setUsers] = useState([]);
+    const [cardIndex, setCardIndex] = useState(0);
+    const [loading, setLoading] = useState(true); // Veri yüklenme durumunu takip et
 
-    const [cardIndex, setCardIndex] = useState(0); // To track the current card index
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'users'));
+                const userData = querySnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setUsers(userData);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                Alert.alert('Error', 'Failed to load users.');
+            } finally {
+                setLoading(false); // Veri yükleme tamamlandı
+            }
+        };
 
-    // Handle the action when the user swipes left (rejection)
+        fetchUsers();
+    }, []);
+
     const handleSwipeLeft = () => {
-        swiperRef.current.swipeLeft(); // Trigger left swipe action
-        Alert.alert('Rejected', `${users[cardIndex].name} has been rejected`);
+        Alert.alert('Rejected', `${users[cardIndex]?.name || 'Unknown User'} has been rejected`);
     };
 
-    // Handle the action when the user swipes right (approval)
     const handleSwipeRight = () => {
-        swiperRef.current.swipeRight(); // Trigger right swipe action
-        Alert.alert('Accepted', `${users[cardIndex].name} has been accepted`);
+        Alert.alert('Accepted', `${users[cardIndex]?.name || 'Unknown User'} has been accepted`);
     };
 
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Explore Users</Text>
 
-            <Swiper
-                ref={swiperRef} // Assign ref to swiper
-                cards={users}
-                renderCard={(user) => (
-                    <View style={styles.card}>
-                        <Text style={styles.cardName}>{user.name}</Text>
-                        <Text style={styles.cardSkills}>{user.skills}</Text>
-                    </View>
-                )}
-                onSwipedLeft={(index) => setCardIndex(index)} // Update card index when swiped left
-                onSwipedRight={(index) => setCardIndex(index)} // Update card index when swiped right
-                cardIndex={cardIndex}
-                backgroundColor={'#f5f5f5'}
-                stackSize={3} // Number of cards visible at once
-                verticalSwipe={false} // Disable vertical swipe
-            />
+            {/* Yükleniyor durumu */}
+            {loading ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+            ) : users.length > 0 ? (
+                <Swiper
+                    ref={swiperRef}
+                    cards={users}
+                    renderCard={(user) =>
+                        user ? (
+                            <View style={styles.card}>
+                                <Text style={styles.cardName}>{user.name || 'Unknown User'}</Text>
+                                <Text style={styles.cardSkills}>
+                                    {Array.isArray(user.skills) ? user.skills.join(', ') : user.skills || 'No skills listed'}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View style={styles.card}>
+                                <Text style={styles.cardName}>There is no more user!</Text>
+                            </View>
+                        )
+                    }
+                    onSwipedLeft={(index) => setCardIndex(index)}
+                    onSwipedRight={(index) => setCardIndex(index)}
+                    cardIndex={cardIndex}
+                    backgroundColor={'#f5f5f5'}
+                    stackSize={3}
+                    verticalSwipe={false}
+                />
 
-            {/* Approval and Rejection Buttons */}
-            <View style={styles.buttonsContainer}>
-                {/* Red X Button */}
-                <TouchableOpacity
-                    style={styles.rejectButton}
-                    onPress={handleSwipeLeft} // Trigger left swipe action
-                >
-                    <FontAwesome name="times" size={30} color="#db4437" />
-                </TouchableOpacity>
+            ) : (
+                <Text>No users available to explore.</Text>
+            )}
 
-                {/* Green Check Button */}
-                <TouchableOpacity
-                    style={styles.acceptButton}
-                    onPress={handleSwipeRight} // Trigger right swipe action
-                >
-                    <FontAwesome name="check" size={30} color="#34a853" />
-                </TouchableOpacity>
-            </View>
+            {/* Kabul ve reddetme butonları */}
+            {!loading && users.length > 0 && (
+                <View style={styles.buttonsContainer}>
+                    <TouchableOpacity style={styles.rejectButton} onPress={handleSwipeLeft}>
+                        <FontAwesome name="times" size={30} color="#db4437" />
+                    </TouchableOpacity>
 
-            {/* Bottom Navigation Bar */}
+                    <TouchableOpacity style={styles.acceptButton} onPress={handleSwipeRight}>
+                        <FontAwesome name="check" size={30} color="#34a853" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Alt navigasyon çubuğu */}
             <View style={styles.navBar}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}>
                     <FontAwesome name="user" size={24} color="#fff" />
                     <Text style={styles.navText}>Profile</Text>
                 </TouchableOpacity>
@@ -82,6 +102,16 @@ export default function Explore({ navigation }) {
                 <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
                     <FontAwesome name="search" size={24} color="#fff" />
                     <Text style={styles.navText}>Explore</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => {
+                        Alert.alert('Logging Out');
+                        navigation.navigate('WelcomeScreen');
+                    }}
+                >
+                    <FontAwesome name="sign-out" size={24} color="#fff" />
+                    <Text style={styles.navText}>Sign Out</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -105,15 +135,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderRadius: 15, // For rounded corners
-        width: 250, // Card width
-        height: '40%', // Cards take 40% of the screen height
+        borderRadius: 15,
+        width: 250,
+        height: '40%',
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 5,
         marginBottom: 20,
         padding: 20,
-        alignSelf: 'center', // Center the card horizontally
+        alignSelf: 'center',
     },
     cardName: {
         fontSize: 22,
@@ -130,7 +160,7 @@ const styles = StyleSheet.create({
         width: '80%',
         marginTop: 20,
         position: 'absolute',
-        bottom: 120, // Make sure buttons are above the bottom nav
+        bottom: 120,
     },
     rejectButton: {
         backgroundColor: '#fff',

@@ -4,6 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 
 
+
 const firebaseConfig = {
     apiKey: "AIzaSyCbwBI1WRZU7x-3h8RInCLkwHU8W78AlUE",
     authDomain: "swapskills-network.firebaseapp.com",
