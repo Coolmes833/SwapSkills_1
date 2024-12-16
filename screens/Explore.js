@@ -45,6 +45,9 @@ export default function Explore({ navigation }) {
         Alert.alert('Accepted', `${users[cardIndex]?.name || 'Unknown User'} has been accepted`);
     };
 
+    // Kullanıcı kartlarının bittiği durumu kontrol etmek için
+    const isOutOfUsers = cardIndex >= users.length;
+
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Explore Users</Text>
@@ -81,15 +84,22 @@ export default function Explore({ navigation }) {
                 <Text>No users available to explore.</Text>
             )}
 
+            {/* Kullanıcılar bittiğinde mesaj */}
+            {isOutOfUsers && !loading && (
+                <View style={styles.outOfUsersContainer}>
+                    <Text style={styles.outOfUsersText}>There are no more users to explore!</Text>
+                </View>
+            )}
+
             {/* Kabul ve reddetme butonları */}
-            {!loading && users.length > 0 && (
+            {!loading && users.length > 0 && !isOutOfUsers && (
                 <View style={styles.buttonsContainer}>
                     <TouchableOpacity style={styles.rejectButton} onPress={handleSwipeLeft}>
-                        <FontAwesome name="times" size={30} color="#db4437" />
+                        <FontAwesome name="times" size={30} color="#fff" />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.acceptButton} onPress={handleSwipeRight}>
-                        <FontAwesome name="check" size={30} color="#34a853" />
+                        <FontAwesome name="check" size={30} color="#fff" />
                     </TouchableOpacity>
                 </View>
             )}
@@ -139,25 +149,43 @@ const styles = StyleSheet.create({
     card: {
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#f8e6e1', // Daha sıcak bir renk
         borderRadius: 15,
-        width: 250,
-        height: '40%',
+        width: 270, // Kart boyutunu küçülttük
+        height: 350, // Kart boyutunu küçülttük
         shadowColor: '#000',
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 5,
         marginBottom: 20,
         padding: 20,
         alignSelf: 'center',
+        borderWidth: 1,
+        borderColor: '#e0a899', // Hafif bir sınır rengi
     },
     cardName: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
+        color: '#5a3d37', // Başlık için daha sıcak bir renk
     },
     cardSkills: {
         fontSize: 16,
-        color: '#777',
+        color: '#6b4c3b', // Daha yumuşak bir renk
         marginTop: 10,
+        textAlign: 'center', // Yetenekleri ortaladık
+    },
+    outOfUsersContainer: {
+        marginTop: 50,
+        padding: 20,
+        backgroundColor: '#f8e6e1',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e0a899',
+        alignItems: 'center',
+    },
+    outOfUsersText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#5a3d37',
     },
     buttonsContainer: {
         flexDirection: 'row',
@@ -166,18 +194,19 @@ const styles = StyleSheet.create({
         marginTop: 20,
         position: 'absolute',
         bottom: 120,
+        zIndex: 1, // Butonların üstte olmasını sağladık
     },
     rejectButton: {
-        backgroundColor: '#fff',
-        padding: 15,
+        backgroundColor: '#db4437',
+        padding: 20,
         borderRadius: 50,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 5,
     },
     acceptButton: {
-        backgroundColor: '#fff',
-        padding: 15,
+        backgroundColor: '#34a853',
+        padding: 20,
         borderRadius: 50,
         shadowColor: '#000',
         shadowOpacity: 0.1,
@@ -192,6 +221,7 @@ const styles = StyleSheet.create({
         right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         paddingVertical: 10,
+        zIndex: 2, // Alt navigasyon butonlarının üstte olmasını sağladık
     },
     navItem: {
         alignItems: 'center',
