@@ -1,121 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { getDocs, collection, query, orderBy, addDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth'; // Firebase Authentication'ı import et
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { db } from '../fireBase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
-export default function ChatDetail({ route }) {
-    const { chatId, userName } = route.params;
+export default function ChatDetail({ route, navigation }) {
+    const { chatId, currentUserId, userName } = route.params;
     const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
+    const [inputMessage, setInputMessage] = useState('');
+    const flatListRef = useRef();
 
-    // Sohbet odasındaki mesajları al
     useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                const q = query(
-                    collection(db, 'chats', chatId, 'messages'),
-                    orderBy('createdAt', 'asc')
-                );
-                const querySnapshot = await getDocs(q);
-                const messagesData = querySnapshot.docs.map(doc => doc.data());
-                setMessages(messagesData);
-            } catch (error) {
-                console.error('Error fetching messages:', error);
-            }
-        };
+        navigation.setOptions({ title: userName });
 
-        fetchMessages();
+        const messagesRef = collection(db, 'chats', chatId, 'messages');
+        const q = query(messagesRef, orderBy('createdAt', 'asc'));
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const fetchedMessages = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setMessages(fetchedMessages);
+        });
+
+        return () => unsubscribe();
     }, [chatId]);
 
-    // Yeni mesaj gönder
-    const sendMessage = async (chatId, senderId, message) => {
+    const sendMessage = async () => {
+        if (inputMessage.trim() === '') return;
         try {
-            const messageData = {
-                senderId,
-                message,
-                createdAt: new Date(),
-            };
-
             const messagesRef = collection(db, 'chats', chatId, 'messages');
-            await addDoc(messagesRef, messageData); // addDoc yerine setDoc yerine addDoc kullanılıyor
-
-            console.log('Message sent:', message);
+            await addDoc(messagesRef, {
+                senderId: currentUserId,
+                message: inputMessage.trim(),
+                createdAt: serverTimestamp(),
+            });
+            setInputMessage('');
         } catch (error) {
             console.error('Error sending message:', error);
         }
     };
 
-    const handleSendMessage = async () => {
-        const currentUser = getAuth().currentUser;
-        if (currentUser && newMessage.trim()) {
-            await sendMessage(chatId, currentUser.uid, newMessage);
-            setNewMessage(''); // Mesaj gönderildikten sonra inputu temizle
-        }
-    };
+    const renderItem = ({ item }) => (
+        <View
+            style={[
+                styles.messageContainer,
+                item.senderId === currentUserId ? styles.myMessage : styles.otherMessage,
+            ]}
+        >
+            <Text style={styles.messageText}>{item.message}</Text>
+        </View>
+    );
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Chat with {userName}</Text>
-
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={80}
+        >
             <FlatList
+                ref={flatListRef}
                 data={messages}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                    <View style={styles.messageItem}>
-                        <Text style={styles.messageText}>{item.message}</Text>
-                    </View>
-                )}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                onContentSizeChange={() => flatListRef.current.scrollToEnd({ animated: true })}
+                onLayout={() => flatListRef.current.scrollToEnd({ animated: true })}
             />
 
-            <TextInput
-                style={styles.input}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                placeholder="Type a message..."
-            />
-
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-                <Text style={styles.sendButtonText}>Send</Text>
-            </TouchableOpacity>
-        </View>
+            <View style={styles.inputContainer}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Mesaj yaz..."
+                    value={inputMessage}
+                    onChangeText={setInputMessage}
+                />
+                <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+                    <Text style={styles.sendButtonText}>Gönder</Text>
+                </TouchableOpacity>
+            </View>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10,
     },
-    header: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-    },
-    messageItem: {
+    messageContainer: {
+        margin: 10,
         padding: 10,
-        marginBottom: 5,
-        backgroundColor: '#e6e6e6',
-        borderRadius: 5,
+        borderRadius: 8,
+        maxWidth: '70%',
+    },
+    myMessage: {
+        backgroundColor: '#DCF8C6',
+        alignSelf: 'flex-end',
+    },
+    otherMessage: {
+        backgroundColor: '#E5E5E5',
+        alignSelf: 'flex-start',
     },
     messageText: {
         fontSize: 16,
     },
-    input: {
-        borderWidth: 1,
-        borderRadius: 25,
+    inputContainer: {
+        flexDirection: 'row',
         padding: 10,
-        marginBottom: 10,
+        borderTopWidth: 1,
+        borderColor: '#ccc',
+    },
+    input: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 20,
+        paddingHorizontal: 15,
     },
     sendButton: {
+        marginLeft: 10,
         backgroundColor: '#4c669f',
-        paddingVertical: 10,
-        borderRadius: 25,
-        alignItems: 'center',
+        paddingHorizontal: 15,
+        borderRadius: 20,
+        justifyContent: 'center',
     },
     sendButtonText: {
         color: '#fff',
-        fontSize: 18,
         fontWeight: 'bold',
     },
 });

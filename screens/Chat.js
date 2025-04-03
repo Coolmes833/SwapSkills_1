@@ -1,31 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../fireBase';
+import { getAuth } from 'firebase/auth';
+
 
 export default function Chat({ navigation }) {
     const [users, setUsers] = useState([]); // Tüm kullanıcıları tutmak için state
 
+    // Chat odası oluşturma fonksiyonu
     const createChatRoom = async (userId1, userId2) => {
         try {
-            // İki kullanıcı arasında benzersiz bir sohbet odası kimliği oluşturuyoruz
             const chatId = [userId1, userId2].sort().join('_');
-
-            // Sohbet odası verisi
-            const chatData = {
-                userIds: [userId1, userId2],
-                createdAt: new Date(),
-            };
-
-            // Sohbet odasını Firestore'da kaydediyoruz
             const chatRef = doc(db, 'chats', chatId);
-            await setDoc(chatRef, chatData);
 
-            console.log('Chat room created:', chatId);
+            const chatSnapshot = await getDoc(chatRef);
+
+            if (!chatSnapshot.exists()) {
+                // Chat odası yoksa oluştur
+                const chatData = {
+                    userIds: [userId1, userId2],
+                    createdAt: new Date(),
+                };
+                await setDoc(chatRef, chatData);
+                console.log('Chat room created:', chatId);
+            } else {
+                console.log('Chat room already exists:', chatId);
+            }
+
             return chatId;
         } catch (error) {
             console.error('Error creating chat room:', error);
+            return null;
         }
     };
 
@@ -67,17 +74,28 @@ export default function Chat({ navigation }) {
 
     // Kullanıcıyı seçtiğinizde
     const handleStartChat = async (selectedUser) => {
-        Alert.alert(`Starting chat with ${selectedUser.name}`);
-        const currentUser = getAuth().currentUser;
-        if (!currentUser) return;
-        const currentUserId = currentUser.uid;
-        const selectedUserId = selectedUser.id;
+        try {
+            const currentUser = getAuth().currentUser;
+            if (!currentUser) return;
+            const currentUserId = currentUser.uid;
+            const selectedUserId = selectedUser.id;
 
-        // Kullanıcılar arasında bir sohbet odası oluştur
-        const chatId = await createChatRoom(currentUserId, selectedUserId);
+            const chatId = await createChatRoom(currentUserId, selectedUserId);
+            console.log('ChatId:', chatId);
 
-        // Sohbet ekranına yönlendir
-        navigation.navigate('ChatDetail', { chatId, userName: selectedUser.name });
+            if (chatId) {
+                navigation.navigate('ChatDetail', {
+                    chatId,
+                    userName: selectedUser.name,
+                    currentUserId: currentUserId,
+                });
+            } else {
+                Alert.alert('Chat ID oluşturulamadı!');
+            }
+        } catch (error) {
+            console.error('Chat başlatma hatası:', error);
+            Alert.alert('Chat başlatılamadı!');
+        }
     };
 
 

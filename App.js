@@ -25,7 +25,6 @@ export default function App() {
         <Stack.Screen name="Chat" component={Chat} />
         <Stack.Screen name="ChatDetail" component={ChatDetail} />
 
-
       </Stack.Navigator>
     </NavigationContainer>
   );
