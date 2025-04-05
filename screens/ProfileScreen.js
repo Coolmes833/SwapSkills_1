@@ -1,104 +1,142 @@
+// ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
+import {
+    View, Text, StyleSheet, TextInput, TouchableOpacity,
+    Alert, Image, Modal, Platform, ActionSheetIOS
+} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { db } from '../fireBase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadToCloudinary } from '../CloudinaryUpload.js'
+import { uploadToCloudinary } from '../CloudinaryUpload.js';
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen() {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [skills, setSkills] = useState('');
     const [userId, setUserId] = useState(null);
     const [profileImage, setProfileImage] = useState(null);
-
+    const [isModalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         const auth = getAuth();
         const currentUser = auth.currentUser;
-        if (currentUser) {
-            setUserId(currentUser.uid);
-        } else {
-            console.log('No user is logged in');
-        }
+        if (currentUser) setUserId(currentUser.uid);
     }, []);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
-            if (userId) {
-                try {
-                    const userRef = doc(db, 'users', userId);
-                    const userSnap = await getDoc(userRef);
-
-                    if (userSnap.exists()) {
-                        const userData = userSnap.data();
-                        setName(userData.name || '');
-                        setDescription(userData.description || '');
-                        setSkills(userData.skills || '');
-                        setProfileImage(userData.profileImage || null);
-                    } else {
-                        console.log('No such document!');
-                    }
-                } catch (error) {
-                    console.error('Error fetching user profile:', error);
+            if (!userId) return;
+            try {
+                const userRef = doc(db, 'users', userId);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const data = userSnap.data();
+                    setName(data.name || '');
+                    setDescription(data.description || '');
+                    setSkills(data.skills || '');
+                    setProfileImage(data.profileImage || null);
                 }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
             }
         };
-
         fetchUserProfile();
     }, [userId]);
 
     const handleSave = async () => {
-        if (userId && name && description && skills) {
-            try {
-                const userRef = doc(db, 'users', userId);
-                await setDoc(userRef, { name, description, skills, profileImage });
-                Alert.alert('Profile saved successfully!');
-            } catch (error) {
-                console.error('Error saving profile:', error);
-                Alert.alert('Error saving profile.');
-            }
-        } else {
+        if (!userId || !name || !description || !skills) {
             Alert.alert('Please fill in all fields.');
+            return;
+        }
+        try {
+            await setDoc(doc(db, 'users', userId), {
+                name,
+                description,
+                skills,
+                profileImage
+            });
+            Alert.alert('Profile saved successfully!');
+        } catch (error) {
+            Alert.alert('Error saving profile');
+            console.error(error);
         }
     };
 
-
     const handleImagePick = async () => {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
-            Alert.alert("Permission required", "You need to allow access to your gallery.");
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert("Permission denied", "Gallery access is required.");
             return;
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaType.Images,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.5,
         });
 
-        if (!result.canceled) {
+        if (!result.canceled && result.assets && result.assets.length > 0) {
             const imageUri = result.assets[0].uri;
             try {
-                const uploadedUrl = await uploadToCloudinary(imageUri);
-                setProfileImage(uploadedUrl);
-            } catch (error) {
-                Alert.alert("Upload failed", "Image could not be uploaded.");
+                const uploaded = await uploadToCloudinary(imageUri);
+                setProfileImage(uploaded);
+            } catch (e) {
+                Alert.alert("Upload failed");
             }
         }
     };
+
+
+
+
+    const handleImageAction = () => {
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options: ['Zoom Photo', 'Change Photo', 'Remove Photo', 'Cancel'],
+                    cancelButtonIndex: 3,
+                    destructiveButtonIndex: 2,
+                },
+                async (buttonIndex) => {
+                    if (buttonIndex === 0) setModalVisible(true);
+                    if (buttonIndex === 1) await handleImagePick(); // BURASI async olmalı
+                    if (buttonIndex === 2) setProfileImage(null);
+                }
+            );
+        } else {
+            Alert.alert('Photo Options', '', [
+                {
+                    text: 'Zoom Photo',
+                    onPress: () => setModalVisible(true),
+                },
+                {
+                    text: 'Change Photo',
+                    onPress: async () => {
+                        await handleImagePick(); // async olarak çağır
+                    },
+                },
+                {
+                    text: 'Remove Photo',
+                    onPress: () => setProfileImage(null),
+                    style: 'destructive',
+                },
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+            ]);
+        }
+    };
+
 
     return (
         <View style={styles.container}>
             <Text style={styles.header}>MY PROFILE</Text>
 
-            <TouchableOpacity
-                style={styles.profileImageContainer}
-                onPress={handleImagePick}
-            >
+            <TouchableOpacity style={styles.profileImageContainer} onPress={handleImageAction}>
                 {profileImage ? (
                     <Image source={{ uri: profileImage }} style={styles.profileImage} />
                 ) : (
@@ -106,34 +144,22 @@ export default function ProfileScreen({ navigation }) {
                 )}
             </TouchableOpacity>
 
+            {profileImage && (
+                <Modal visible={isModalVisible} transparent>
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalClose}>
+                            <Text style={styles.modalCloseText}>Close</Text>
+                        </TouchableOpacity>
+                        <Image source={{ uri: profileImage }} style={styles.fullScreenImage} resizeMode="contain" />
+                    </View>
+                </Modal>
+            )}
 
-            <TextInput
-                style={styles.input}
-                placeholder="Ad Soyad"
-                placeholderTextColor="#aaa"
-                value={name}
-                onChangeText={setName}
-            />
+            <TextInput style={styles.input} placeholder="Ad Soyad" placeholderTextColor="#aaa" value={name} onChangeText={setName} />
+            <TextInput style={[styles.input, styles.textArea]} placeholder="Description" placeholderTextColor="#aaa" value={description} onChangeText={setDescription} multiline />
+            <TextInput style={[styles.input, styles.textArea]} placeholder="My Skills" placeholderTextColor="#aaa" value={skills} onChangeText={setSkills} multiline />
 
-            <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Description"
-                placeholderTextColor="#aaa"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-            />
-
-            <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="My Skills"
-                placeholderTextColor="#aaa"
-                value={skills}
-                onChangeText={setSkills}
-                multiline
-            />
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave} >
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                 <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
         </View>
@@ -141,17 +167,8 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f5f5f5',
-        padding: 20,
-    },
-    header: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
+    container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20 },
+    header: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
     profileImageContainer: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -160,6 +177,13 @@ const styles = StyleSheet.create({
         borderRadius: 60,
         backgroundColor: '#ddd',
         marginBottom: 20,
+        overflow: 'hidden',
+    },
+    profileImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        resizeMode: 'cover',
     },
     input: {
         backgroundColor: '#fff',
@@ -183,12 +207,25 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
     },
-    profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        resizeMode: 'cover',
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-
-
+    modalClose: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        zIndex: 10,
+    },
+    modalCloseText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    fullScreenImage: {
+        width: '100%',
+        height: '100%',
+    },
 });
