@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { db } from '../fireBase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadToCloudinary } from '../CloudinaryUpload.js'
 
 export default function ProfileScreen({ navigation }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [skills, setSkills] = useState('');
     const [userId, setUserId] = useState(null);
+    const [profileImage, setProfileImage] = useState(null);
+
 
     useEffect(() => {
         const auth = getAuth();
@@ -33,6 +37,7 @@ export default function ProfileScreen({ navigation }) {
                         setName(userData.name || '');
                         setDescription(userData.description || '');
                         setSkills(userData.skills || '');
+                        setProfileImage(userData.profileImage || null);
                     } else {
                         console.log('No such document!');
                     }
@@ -49,7 +54,7 @@ export default function ProfileScreen({ navigation }) {
         if (userId && name && description && skills) {
             try {
                 const userRef = doc(db, 'users', userId);
-                await setDoc(userRef, { name, description, skills });
+                await setDoc(userRef, { name, description, skills, profileImage });
                 Alert.alert('Profile saved successfully!');
             } catch (error) {
                 console.error('Error saving profile:', error);
@@ -60,15 +65,47 @@ export default function ProfileScreen({ navigation }) {
         }
     };
 
+
+    const handleImagePick = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.granted === false) {
+            Alert.alert("Permission required", "You need to allow access to your gallery.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaType.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            const imageUri = result.assets[0].uri;
+            try {
+                const uploadedUrl = await uploadToCloudinary(imageUri);
+                setProfileImage(uploadedUrl);
+            } catch (error) {
+                Alert.alert("Upload failed", "Image could not be uploaded.");
+            }
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.header}>MY PROFILE</Text>
 
             <TouchableOpacity
                 style={styles.profileImageContainer}
-                onPress={() => Alert.alert("Henüz Kodlanmadı!", "Bu özellik şu anda kullanılabilir değil.")}>
-                <FontAwesome name="camera" size={30} color="#000" />
+                onPress={handleImagePick}
+            >
+                {profileImage ? (
+                    <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                ) : (
+                    <FontAwesome name="camera" size={30} color="#000" />
+                )}
             </TouchableOpacity>
+
 
             <TextInput
                 style={styles.input}
@@ -146,4 +183,12 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
     },
+    profileImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        resizeMode: 'cover',
+    },
+
+
 });
