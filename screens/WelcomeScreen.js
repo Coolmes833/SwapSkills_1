@@ -12,7 +12,7 @@ export default function WelcomeScreen({ navigation }) {
     const [errorMessage, setErrorMessage] = useState(null);
 
     const handleGoogleSignIn = () => {
-        navigation.navigate("ProfileScreen")
+        navigation.navigate('MainApp');
     };
 
     const handleSignIn = async () => {
@@ -23,7 +23,7 @@ export default function WelcomeScreen({ navigation }) {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             Alert.alert('Welcome!', `Successfully logged in as ${userCredential.user.email}`);
-            navigation.navigate('ProfileScreen');
+            navigation.navigate('MainApp');
         } catch (error) {
             Alert.alert('Sign In Error', `An error occurred: ${error.message}`);
         }

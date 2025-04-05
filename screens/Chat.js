@@ -57,12 +57,20 @@ export default function Chat({ navigation }) {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
+                const auth = getAuth(); // Firebase’in kimlik doğrulama sistemine (auth) eriş.
+                const currentUser = auth.currentUser; // Şu anda giriş yapmış olan kullanıcıyı al.
+                if (!currentUser) return; // Eğer currentUser yoksa (yani kullanıcı giriş yapmamışsa,fonksiyonu burada durdur!
+
                 const querySnapshot = await getDocs(collection(db, 'users'));
-                const usersData = querySnapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
-                setUsers(usersData); // Kullanıcı verilerini state'e kaydet
+
+                const usersData = querySnapshot.docs
+                    .map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }))
+                    .filter((user) => user.id !== currentUser.uid); // Giriş yapan kullanıcıyı filtrele
+
+                setUsers(usersData);
             } catch (error) {
                 console.error('Error fetching users:', error);
                 Alert.alert('Error fetching users');
@@ -71,6 +79,7 @@ export default function Chat({ navigation }) {
 
         fetchUsers();
     }, []);
+
 
     // Kullanıcıyı seçtiğinizde
     const handleStartChat = async (selectedUser) => {
@@ -118,30 +127,7 @@ export default function Chat({ navigation }) {
                 ListEmptyComponent={<Text style={styles.emptyText}>No users found.</Text>}
             />
 
-            <View style={styles.navBar}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}>
-                    <FontAwesome name="user" size={24} color="#fff" />
-                    <Text style={styles.navText}>Profile</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
-                    <FontAwesome name="comment" size={24} color="#fff" />
-                    <Text style={styles.navText}>Chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
-                    <FontAwesome name="search" size={24} color="#fff" />
-                    <Text style={styles.navText}>Explore</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => {
-                        Alert.alert('Logging Out');
-                        navigation.navigate('WelcomeScreen');
-                    }}
-                >
-                    <FontAwesome name="sign-out" size={24} color="#fff" />
-                    <Text style={styles.navText}>Sign Out</Text>
-                </TouchableOpacity>
-            </View>
+
         </View>
     );
 }

@@ -112,31 +112,7 @@ export default function Explore({ navigation }) {
                 </View>
             )}
 
-            {/* Alt navigasyon çubuğu */}
-            <View style={styles.navBar}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProfileScreen')}>
-                    <FontAwesome name="user" size={24} color="#fff" />
-                    <Text style={styles.navText}>Profile</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
-                    <FontAwesome name="comment" size={24} color="#fff" />
-                    <Text style={styles.navText}>Chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Explore')}>
-                    <FontAwesome name="search" size={24} color="#fff" />
-                    <Text style={styles.navText}>Explore</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => {
-                        Alert.alert('Logging Out');
-                        navigation.navigate('WelcomeScreen');
-                    }}
-                >
-                    <FontAwesome name="sign-out" size={24} color="#fff" />
-                    <Text style={styles.navText}>Sign Out</Text>
-                </TouchableOpacity>
-            </View>
+
         </View>
     );
 }
