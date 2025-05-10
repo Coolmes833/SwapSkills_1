@@ -1,3 +1,4 @@
+// screens/Requests.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -5,8 +6,8 @@ import { getAuth } from 'firebase/auth';
 import { db } from '../fireBase';
 import { doc, getDoc, deleteDoc, collection, onSnapshot } from 'firebase/firestore';
 
-export default function Chat({ navigation }) {
-    const [matches, setMatches] = useState([]);
+export default function Requests({ navigation }) {
+    const [requests, setRequests] = useState([]);
     const currentUserId = getAuth().currentUser?.uid;
 
     useEffect(() => {
@@ -18,9 +19,8 @@ export default function Chat({ navigation }) {
             for (const docSnap of snapshot.docs) {
                 const otherUserId = docSnap.id;
                 const myStatus = docSnap.data().status;
-                const timestamp = docSnap.data().timestamp?.toDate();
 
-                if (myStatus !== 'matched') continue; // sadece matched olanlar
+                if (myStatus !== 'pending') continue; // sadece pending olanlar
 
                 const userRef = doc(db, 'users', otherUserId);
                 const userSnap = await getDoc(userRef);
@@ -31,30 +31,20 @@ export default function Chat({ navigation }) {
                     updates.push({
                         id: otherUserId,
                         name: userData.name,
-                        matchedAt: timestamp,
                     });
                 }
             }
 
-            setMatches(updates);
+            setRequests(updates);
         });
 
         return () => unsubscribe();
     }, [currentUserId]);
 
-    const handleChatPress = (user) => {
-        const chatId = [currentUserId, user.id].sort().join('_');
-        navigation.navigate('ChatDetail', {
-            chatId,
-            userName: user.name,
-            currentUserId: currentUserId,
-        });
-    };
-
-    const handleUnmatch = (userId) => {
+    const handleCancelRequest = async (userId) => {
         Alert.alert(
-            'Unmatch',
-            'Are you sure you want to remove this match?',
+            'Cancel Request',
+            'Are you sure you want to cancel this request?',
             [
                 {
                     text: 'No',
@@ -65,11 +55,10 @@ export default function Chat({ navigation }) {
                     onPress: async () => {
                         try {
                             await deleteDoc(doc(db, 'likes', currentUserId, 'users', userId));
-                            await deleteDoc(doc(db, 'likes', userId, 'users', currentUserId));
-                            Alert.alert('Unmatched', 'You have removed this match.');
+                            Alert.alert('Cancelled', 'Your request has been cancelled.');
                         } catch (error) {
-                            console.error('Unmatch error:', error);
-                            Alert.alert('Error', 'Failed to unmatch.');
+                            console.error('Failed to cancel request:', error);
+                            Alert.alert('Error', 'Could not cancel the request.');
                         }
                     },
                     style: 'destructive',
@@ -79,29 +68,32 @@ export default function Chat({ navigation }) {
     };
 
     const renderItem = ({ item }) => (
-        <View style={[styles.userItem, styles.matched]}>
-            <TouchableOpacity style={{ flex: 1 }} onPress={() => handleChatPress(item)}>
-                <FontAwesome name="user" size={24} color="#fff" />
-                <View style={{ marginLeft: 10 }}>
+        <View style={[styles.userItem, styles.pending]}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => navigation.navigate('ProfileDetail', { userId: item.id, readonly: true })}>
+                <View style={styles.userInfo}>
+                    <FontAwesome name="user" size={24} color="#fff" />
                     <Text style={styles.userName}>{item.name}</Text>
-                    {item.matchedAt && (
-                        <Text style={styles.timestamp}>Matched: {item.matchedAt.toLocaleDateString()}</Text>
-                    )}
                 </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleUnmatch(item.id)}>
-                <Text style={styles.unmatchButton}>Unmatch</Text>
+            <TouchableOpacity onPress={() => handleCancelRequest(item.id)}>
+                <Text style={styles.cancelButton}>Cancel</Text>
             </TouchableOpacity>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Your Matches</Text>
-            {matches.length > 0 ? (
-                <FlatList data={matches} keyExtractor={(item) => item.id} renderItem={renderItem} />
+            <View style={styles.headerRow}>
+                <Text style={styles.header}>Pending Requests</Text>
+                <TouchableOpacity onPress={() => Alert.alert('Info', 'These are requests you have sent but not yet matched.')}>
+                    <FontAwesome name="question-circle" size={24} color="#888" />
+                </TouchableOpacity>
+            </View>
+
+            {requests.length > 0 ? (
+                <FlatList data={requests} keyExtractor={(item) => item.id} renderItem={renderItem} />
             ) : (
-                <Text>No matches yet.</Text>
+                <Text>No pending requests.</Text>
             )}
         </View>
     );
@@ -113,11 +105,16 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: '#f9f9f9',
     },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 5,
+    },
     header: {
         fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
     },
     userItem: {
         flexDirection: 'row',
@@ -127,24 +124,25 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         borderRadius: 10,
     },
-    matched: {
-        backgroundColor: '#4CAF50',
+    pending: {
+        backgroundColor: '#f44336',
+    },
+    userInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     userName: {
+        marginLeft: 10,
         fontSize: 18,
         color: '#fff',
-        fontWeight: 'bold',
     },
-    timestamp: {
-        fontSize: 12,
-        color: '#f0f0f0',
-    },
-    unmatchButton: {
+    cancelButton: {
         color: '#fff',
+        fontWeight: 'bold',
         backgroundColor: '#00000033',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 5,
-        fontWeight: 'bold',
+        overflow: 'hidden',
     },
 });

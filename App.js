@@ -14,6 +14,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import ChatDetail from './screens/ChatDetail';
 import SearchScreen from './screens/SearchScreen';
 import ProfileDetail from './screens/ProfileDetail';
+import Requests from './screens/Requests';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -33,23 +34,31 @@ function TabNavigator() {
           } else if (route.name === 'Explore') {
             iconName = 'search';
           } else if (route.name === 'Search') {
-            iconName = 'filter'; // 🔍 farklı ikon
+            iconName = 'filter'; // 
           } else if (route.name === 'SignOut') {
             iconName = 'sign-out';
           }
+          else if (route.name === 'Requests') {
+            iconName = 'hourglass-half';
+          }
+
 
           return <FontAwesome name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: 'white',
         tabBarInactiveTintColor: 'lightgray',
-        tabBarStyle: { backgroundColor: '#555' },
+        tabBarStyle: {
+          backgroundColor: '#555', height: 60,
+        },
         headerShown: false,
+
       })}
     >
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Chat" component={Chat} />
       <Tab.Screen name="Explore" component={Explore} />
       <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Requests" component={Requests} />
       <Tab.Screen
         name="SignOut"
         component={WelcomeScreen}
