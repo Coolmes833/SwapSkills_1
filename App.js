@@ -12,6 +12,8 @@ import Explore from './screens/Explore';
 import Chat from './screens/Chat';
 import ProfileScreen from './screens/ProfileScreen';
 import ChatDetail from './screens/ChatDetail';
+import SearchScreen from './screens/SearchScreen';
+import ProfileDetail from './screens/ProfileDetail';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -30,6 +32,8 @@ function TabNavigator() {
             iconName = 'comment';
           } else if (route.name === 'Explore') {
             iconName = 'search';
+          } else if (route.name === 'Search') {
+            iconName = 'filter'; // 🔍 farklı ikon
           } else if (route.name === 'SignOut') {
             iconName = 'sign-out';
           }
@@ -39,16 +43,19 @@ function TabNavigator() {
         tabBarActiveTintColor: 'white',
         tabBarInactiveTintColor: 'lightgray',
         tabBarStyle: { backgroundColor: '#555' },
-        headerShown: false, // Üstteki başlığı gizle
+        headerShown: false,
       })}
     >
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Chat" component={Chat} />
       <Tab.Screen name="Explore" component={Explore} />
-      <Tab.Screen name="SignOut" component={WelcomeScreen}
+      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen
+        name="SignOut"
+        component={WelcomeScreen}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            e.preventDefault(); // Navigasyonu engelle
+            e.preventDefault();
             Alert.alert('Logging Out');
             navigation.navigate('WelcomeScreen');
           },
@@ -67,6 +74,8 @@ export default function App() {
         <Stack.Screen name="CreateYourAccountScreen" component={CreateYourAccountScreen} />
         <Stack.Screen name="ChatDetail" component={ChatDetail} options={{ headerShown: true }} />
         <Stack.Screen name="MainApp" component={TabNavigator} />
+        <Stack.Screen name="ProfileDetail" component={ProfileDetail} options={{ headerShown: true, title: 'User Profile' }} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
