@@ -15,6 +15,9 @@ import ChatDetail from './screens/ChatDetail';
 import SearchScreen from './screens/SearchScreen';
 import ProfileDetail from './screens/ProfileDetail';
 import Requests from './screens/Requests';
+import SkillInfoScreen from './screens/SkillInfoScreen';
+import AiHelperWithGPT from './screens/AiHelperWithGPT';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -41,6 +44,11 @@ function TabNavigator() {
           else if (route.name === 'Requests') {
             iconName = 'hourglass-half';
           }
+          else if (route.name === 'AI Mentor GPT') {
+            iconName = 'lightbulb-o'; // alternatif: 'brain', 'robot', 'book'
+          }
+
+
 
 
           return <FontAwesome name={iconName} size={24} color={color} />;
@@ -58,6 +66,7 @@ function TabNavigator() {
       <Tab.Screen name="Chat" component={Chat} />
       <Tab.Screen name="Explore" component={Explore} />
       <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="AI Mentor GPT" component={AiHelperWithGPT} />
       <Tab.Screen name="Requests" component={Requests} />
       <Tab.Screen
         name="SignOut"
@@ -84,6 +93,8 @@ export default function App() {
         <Stack.Screen name="ChatDetail" component={ChatDetail} options={{ headerShown: true }} />
         <Stack.Screen name="MainApp" component={TabNavigator} />
         <Stack.Screen name="ProfileDetail" component={ProfileDetail} options={{ headerShown: true, title: 'User Profile' }} />
+        <Stack.Screen name="SkillInfo" component={SkillInfoScreen} options={{ title: 'Skill Info' }} />
+
 
       </Stack.Navigator>
     </NavigationContainer>
