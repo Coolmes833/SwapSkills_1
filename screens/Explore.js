@@ -1,5 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    Alert,
+    ActivityIndicator,
+} from 'react-native';
 import Swiper from 'react-native-deck-swiper';
 import { FontAwesome } from '@expo/vector-icons';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -15,28 +23,21 @@ export default function Explore() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                // 1. Tüm kullanıcıları çek
                 const querySnapshot = await getDocs(collection(db, 'users'));
-                const userData = querySnapshot.docs.map((doc) => ({
+                const allUsers = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
                 }));
 
-                // 2. Sadece like (pending veya matched) olanları çek
                 const likesSnapshot = await getDocs(collection(db, 'likes', currentUserId, 'users'));
                 const likedUserIds = likesSnapshot.docs
-                    .filter(doc => {
-                        const status = doc.data().status;
-                        return status === 'pending' || status === 'matched';
-                    })
                     .map(doc => doc.id);
 
-                // 3. Giriş yapan kişi hariç ve beğenilmişleri çıkar
-                const filteredUsers = userData.filter(
-                    (user) => user.id !== currentUserId && !likedUserIds.includes(user.id)
+                const filtered = allUsers.filter(
+                    user => user.id !== currentUserId && !likedUserIds.includes(user.id)
                 );
 
-                setUsers(filteredUsers);
+                setUsers(filtered);
             } catch (error) {
                 console.error('Error fetching users:', error);
                 Alert.alert('Error', 'Failed to load users.');
@@ -45,44 +46,29 @@ export default function Explore() {
             }
         };
 
-
-
         fetchUsers();
     }, [currentUserId]);
 
-    const handleLike = async (likedUserId) => {
+    const handleLike = async likedUserId => {
         if (!currentUserId || !likedUserId) return;
 
         const myRef = doc(db, 'likes', currentUserId, 'users', likedUserId);
         const reverseRef = doc(db, 'likes', likedUserId, 'users', currentUserId);
-
         const reverseSnap = await getDoc(reverseRef);
 
         if (reverseSnap.exists()) {
             const reverseStatus = reverseSnap.data().status;
-
-            if (reverseStatus === 'pending') {
-                // Eşleşme oldu, her iki tarafı matched yap
+            if (reverseStatus === 'pending' || reverseStatus === 'matched') {
                 await Promise.all([
                     setDoc(myRef, { status: 'matched', timestamp: new Date() }),
                     setDoc(reverseRef, { status: 'matched', timestamp: new Date() }),
                 ]);
                 Alert.alert('Matched!', 'You have a new match!');
-            } else {
-                // Karşı taraf seni zaten matched yapmışsa yine eşle
-                if (reverseStatus === 'matched') {
-                    await setDoc(myRef, { status: 'matched', timestamp: new Date() });
-                } else {
-                    // İlk like
-                    await setDoc(myRef, { status: 'pending', timestamp: new Date() });
-                }
             }
         } else {
-            // Karşı taraf hiç like atmamış
             await setDoc(myRef, { status: 'pending', timestamp: new Date() });
         }
     };
-
 
     const handleSwipeRight = async () => {
         if (cardIndex < users.length) {
@@ -107,11 +93,11 @@ export default function Explore() {
             {loading ? (
                 <ActivityIndicator size="large" color="#0000ff" />
             ) : users.length > 0 ? (
-                <View style={styles.swiperWrapper} pointerEvents="box-none">
+                <View style={styles.swiperWrapper}>
                     <Swiper
                         ref={swiperRef}
                         cards={users}
-                        renderCard={(user) =>
+                        renderCard={user =>
                             user ? (
                                 <View style={styles.card}>
                                     {user.profileImage ? (
@@ -120,48 +106,52 @@ export default function Explore() {
                                         <FontAwesome name="user-circle-o" size={100} color="#ccc" />
                                     )}
                                     <Text style={styles.cardName}>{user.name || 'Unnamed User'}</Text>
-                                    <Text style={styles.cardSkills}>
-                                        {Array.isArray(user.skills) ? user.skills.join(', ') : user.skills || 'No skills listed'}
+
+                                    <Text style={styles.cardLabel}>Skills:</Text>
+                                    <Text style={styles.cardText}>
+                                        {Array.isArray(user.skills) ? user.skills.join(', ') : user.skills || 'None'}
+                                    </Text>
+
+                                    <Text style={styles.cardLabel}>Want to Learn:</Text>
+                                    <Text style={styles.cardText}>
+                                        {Array.isArray(user.wantToLearn) ? user.wantToLearn.join(', ') : user.wantToLearn || 'None'}
                                     </Text>
                                 </View>
                             ) : (
                                 <View style={styles.card}>
-                                    <Text style={styles.cardName}>There is no more user!</Text>
+                                    <Text style={styles.cardName}>No more users available</Text>
                                 </View>
                             )
                         }
                         cardIndex={cardIndex}
-                        backgroundColor={'transparent'}
+                        backgroundColor="transparent"
                         stackSize={3}
                         verticalSwipe={false}
                         containerStyle={{ height: 500 }}
                         cardStyle={{ alignSelf: 'center' }}
-                        onSwipedRight={async (index) => {
+                        onSwipedRight={async index => {
                             const likedUserId = users[index]?.id;
                             await handleLike(likedUserId);
                             setCardIndex(index + 1);
                         }}
-                        onSwipedLeft={(index) => {
-                            setCardIndex(index + 1);
-                        }}
+                        onSwipedLeft={index => setCardIndex(index + 1)}
                     />
                 </View>
             ) : (
-                <Text>No users available to explore.</Text>
+                <Text>No users found.</Text>
             )}
 
             {isOutOfUsers && !loading && (
                 <View style={styles.outOfUsersContainer}>
-                    <Text style={styles.outOfUsersText}>There are no more users to explore!</Text>
+                    <Text style={styles.outOfUsersText}>You're all caught up!</Text>
                 </View>
             )}
 
             {!loading && users.length > 0 && !isOutOfUsers && (
-                <View style={styles.buttonsContainer} pointerEvents="box-none">
+                <View style={styles.buttonsContainer}>
                     <TouchableOpacity style={styles.rejectButton} onPress={handleSwipeLeft}>
                         <FontAwesome name="times" size={30} color="#fff" />
                     </TouchableOpacity>
-
                     <TouchableOpacity style={styles.acceptButton} onPress={handleSwipeRight}>
                         <FontAwesome name="check" size={30} color="#fff" />
                     </TouchableOpacity>
@@ -186,7 +176,6 @@ const styles = StyleSheet.create({
     swiperWrapper: {
         height: 500,
         width: '100%',
-        zIndex: 1,
     },
     card: {
         justifyContent: 'center',
@@ -194,7 +183,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 15,
         width: 300,
-        height: 400,
+        height: 420,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 5,
@@ -204,30 +193,37 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
     cardImage: {
-        width: 120,
-        height: 120,
+        width: 100,
+        height: 100,
         borderRadius: 60,
-        marginBottom: 15,
+        marginBottom: 12,
     },
     cardName: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
         marginBottom: 10,
     },
-    cardSkills: {
-        fontSize: 16,
+    cardLabel: {
+        fontWeight: '600',
+        marginTop: 8,
+        fontSize: 14,
         color: '#555',
+    },
+    cardText: {
+        fontSize: 14,
+        color: '#333',
         textAlign: 'center',
+        marginBottom: 4,
     },
     outOfUsersContainer: {
-        marginTop: 50,
+        marginTop: 40,
         padding: 20,
         backgroundColor: '#eee',
         borderRadius: 10,
     },
     outOfUsersText: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '500',
     },
     buttonsContainer: {
         flexDirection: 'row',
@@ -235,19 +231,15 @@ const styles = StyleSheet.create({
         width: '100%',
         position: 'absolute',
         bottom: 60,
-        zIndex: 5,
-        pointerEvents: 'box-none',
     },
     rejectButton: {
         backgroundColor: '#db4437',
         padding: 20,
         borderRadius: 50,
-        zIndex: 10,
     },
     acceptButton: {
         backgroundColor: '#34a853',
         padding: 20,
         borderRadius: 50,
-        zIndex: 10,
     },
-}); 
+});

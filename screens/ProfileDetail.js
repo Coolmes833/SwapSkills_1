@@ -1,22 +1,39 @@
-// screens/ProfileDetail.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import {
+    View, Text, StyleSheet, Image, ActivityIndicator,
+    TouchableOpacity, Alert, ScrollView, Linking
+} from 'react-native';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../fireBase';
 import { getAuth } from 'firebase/auth';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 export default function ProfileDetail({ route, navigation }) {
     const { userId } = route.params;
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [currentLocation, setCurrentLocation] = useState(null);
     const currentUserId = getAuth().currentUser?.uid;
+
+    useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const location = await Location.getCurrentPositionAsync({});
+                setCurrentLocation({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                });
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const docRef = doc(db, 'users', userId);
                 const docSnap = await getDoc(docRef);
-
                 if (docSnap.exists()) {
                     setUser(docSnap.data());
                 }
@@ -30,12 +47,26 @@ export default function ProfileDetail({ route, navigation }) {
         fetchUser();
     }, [userId]);
 
+    const getDistanceInKm = () => {
+        if (!user?.location || !currentLocation) return null;
+        const R = 6371;
+        const dLat = (user.location.latitude - currentLocation.latitude) * (Math.PI / 180);
+        const dLon = (user.location.longitude - currentLocation.longitude) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(currentLocation.latitude * (Math.PI / 180)) *
+            Math.cos(user.location.latitude * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return (R * c).toFixed(1); // km
+    };
+
     const handleLike = async () => {
         if (!currentUserId || !userId) return;
 
         const myRef = doc(db, 'likes', currentUserId, 'users', userId);
         const reverseRef = doc(db, 'likes', userId, 'users', currentUserId);
-
         const existingLike = await getDoc(myRef);
         if (existingLike.exists()) {
             Alert.alert('Already Processed', 'You have already made a decision for this user.');
@@ -43,7 +74,6 @@ export default function ProfileDetail({ route, navigation }) {
         }
 
         const reverseSnap = await getDoc(reverseRef);
-
         if (reverseSnap.exists() && reverseSnap.data().status === 'pending') {
             await Promise.all([
                 setDoc(myRef, { status: 'matched', timestamp: new Date() }),
@@ -56,17 +86,21 @@ export default function ProfileDetail({ route, navigation }) {
         }
     };
 
-    if (loading) {
-        return <ActivityIndicator size="large" color="#0000ff" style={{ flex: 1 }} />;
-    }
+    const openURL = async (url) => {
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                Alert.alert('Invalid Link', 'Cannot open this URL.');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to open the link.');
+        }
+    };
 
-    if (!user) {
-        return (
-            <View style={styles.container}>
-                <Text>User not found.</Text>
-            </View>
-        );
-    }
+    if (loading) return <ActivityIndicator size="large" color="#0000ff" style={{ flex: 1 }} />;
+    if (!user) return <View style={styles.container}><Text>User not found.</Text></View>;
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -81,15 +115,61 @@ export default function ProfileDetail({ route, navigation }) {
                 <Text style={styles.label}>Description:</Text>
                 <Text style={styles.value}>{user.description || 'No description provided'}</Text>
 
-                <Text style={styles.label}>Skills:</Text>
-                <Text style={styles.value}>
-                    {Array.isArray(user.skills) ? user.skills.join(', ') : user.skills || 'No skills listed'}
-                </Text>
+                {Array.isArray(user.skills) && user.skills.length > 0 && (
+                    <>
+                        <Text style={styles.label}>Skills:</Text>
+                        <View style={styles.tagContainer}>
+                            {user.skills.map((skill, idx) => (
+                                <Text key={idx} style={styles.tag}>{skill}</Text>
+                            ))}
+                        </View>
+                    </>
+                )}
 
-                <Text style={styles.label}>Wants to Learn:</Text>
-                <Text style={styles.value}>
-                    {Array.isArray(user.wantToLearn) ? user.wantToLearn.join(', ') : user.wantToLearn || 'No preferences'}
-                </Text>
+                {Array.isArray(user.wantToLearn) && user.wantToLearn.length > 0 && (
+                    <>
+                        <Text style={styles.label}>Wants to Learn:</Text>
+                        <View style={styles.tagContainer}>
+                            {user.wantToLearn.map((skill, idx) => (
+                                <Text key={idx} style={styles.tag}>{skill}</Text>
+                            ))}
+                        </View>
+                    </>
+                )}
+
+                {Array.isArray(user.urls) && user.urls.length > 0 && (
+                    <>
+                        <Text style={styles.label}>Links:</Text>
+                        {user.urls.map((url, idx) => (
+                            <TouchableOpacity key={idx} onPress={() => openURL(url)}>
+                                <Text style={styles.url}>{url}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </>
+                )}
+
+                {user.age && <Text style={styles.value}>Age: {user.age}</Text>}
+                {user.gender && <Text style={styles.value}>Gender: {user.gender}</Text>}
+
+                {user.location && (
+                    <>
+                        <Text style={styles.label}>Location:</Text>
+                        <MapView
+                            style={styles.map}
+                            region={{
+                                latitude: user.location.latitude,
+                                longitude: user.location.longitude,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                            }}
+                        >
+                            <Marker coordinate={user.location} />
+                        </MapView>
+                        {getDistanceInKm() && (
+                            <Text style={styles.distance}>~ {getDistanceInKm()} km away</Text>
+                        )}
+                    </>
+                )}
             </View>
 
             <View style={styles.buttonsContainer}>
@@ -106,8 +186,7 @@ export default function ProfileDetail({ route, navigation }) {
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 40,
-        paddingHorizontal: 20,
+        padding: 20,
         alignItems: 'center',
         backgroundColor: '#f9f9f9',
     },
@@ -142,10 +221,6 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: 30,
         elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: 2 },
     },
     label: {
         fontSize: 16,
@@ -157,10 +232,41 @@ const styles = StyleSheet.create({
         marginTop: 4,
         color: '#333',
     },
+    tagContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: 4,
+    },
+    tag: {
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginRight: 8,
+        marginBottom: 8,
+        fontSize: 14,
+    },
+    url: {
+        color: '#1e88e5',
+        textDecorationLine: 'underline',
+        marginTop: 4,
+    },
+    map: {
+        width: '100%',
+        height: 180,
+        marginTop: 10,
+        borderRadius: 8,
+    },
+    distance: {
+        marginTop: 8,
+        color: '#777',
+        textAlign: 'center',
+    },
     buttonsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         width: '60%',
+        marginBottom: 30,
     },
     rejectButton: {
         backgroundColor: '#db4437',
