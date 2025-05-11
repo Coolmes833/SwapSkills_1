@@ -16,7 +16,7 @@ export default function AiHelperWithGPT() {
     const [loading, setLoading] = useState(false);
     const [animatedValue] = useState(new Animated.Value(0));
 
-    const apiKey = ""; // Replace with your actual API key
+    const apiKey = "";
 
     const handleAskGPT = async () => {
         if (!input.trim()) return;

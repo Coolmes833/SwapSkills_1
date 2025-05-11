@@ -17,6 +17,8 @@ import ProfileDetail from './screens/ProfileDetail';
 import Requests from './screens/Requests';
 import SkillInfoScreen from './screens/SkillInfoScreen';
 import AiHelperWithGPT from './screens/AiHelperWithGPT';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+
 
 
 const Stack = createNativeStackNavigator();
@@ -94,6 +96,8 @@ export default function App() {
         <Stack.Screen name="MainApp" component={TabNavigator} />
         <Stack.Screen name="ProfileDetail" component={ProfileDetail} options={{ headerShown: true, title: 'User Profile' }} />
         <Stack.Screen name="SkillInfo" component={SkillInfoScreen} options={{ title: 'Skill Info' }} />
+        <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
+
 
 
       </Stack.Navigator>
