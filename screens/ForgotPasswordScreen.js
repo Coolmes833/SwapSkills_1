@@ -13,6 +13,7 @@ import {
     fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { auth } from '../fireBase';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ForgotPasswordScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -29,21 +30,14 @@ export default function ForgotPasswordScreen({ navigation }) {
             const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
 
             if (!methods || methods.length === 0) {
-                // Email might not be registered, but attempt reset anyway for UX purposes
                 await sendPasswordResetEmail(auth, normalizedEmail);
-                Alert.alert(
-                    'Notice',
-                    'If your email is registered, a reset link has been sent.'
-                );
+                Alert.alert('Notice', 'If your email is registered, a reset link has been sent.');
                 navigation.goBack();
                 return;
             }
 
             if (!methods.includes('password')) {
-                Alert.alert(
-                    'Unsupported Login',
-                    'This account uses a different login method (e.g. Google).'
-                );
+                Alert.alert('Unsupported Login', 'This account uses a different login method (e.g. Google).');
                 return;
             }
 
@@ -65,31 +59,30 @@ export default function ForgotPasswordScreen({ navigation }) {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Reset Your Password</Text>
+        <LinearGradient colors={['#5c83b3', '#3b5998', '#1f2f5a']} style={{ flex: 1 }}>
+            <View style={styles.container}>
+                <Text style={styles.title}>Reset Your Password</Text>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Enter your registered email"
-                placeholderTextColor="#aaa"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-            />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter your registered email"
+                    placeholderTextColor="#f0f0f0"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                />
 
-            <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
-                <Text style={styles.buttonText}>Send Reset Link</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
+                    <Text style={styles.buttonText}>Send Reset Link</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={styles.backButton}
-            >
-                <Text style={styles.backText}>Back to Login</Text>
-            </TouchableOpacity>
-        </View>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Text style={styles.backText}>Back to Login</Text>
+                </TouchableOpacity>
+            </View>
+        </LinearGradient>
     );
 }
 
@@ -98,35 +91,28 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         padding: 20,
-        backgroundColor: '#f5f5f5',
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 35,
-        color: '#333',
+        color: '#fff',
     },
     input: {
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#ddd',
+        backgroundColor: '#ffffff90',
+        borderRadius: 10,
         paddingHorizontal: 15,
         paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-        borderRadius: 8,
         marginBottom: 20,
         fontSize: 16,
-        color: '#333',
+        color: '#fff',
     },
     button: {
         backgroundColor: '#5cb85c',
         padding: 15,
-        borderRadius: 8,
+        borderRadius: 10,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         elevation: 3,
     },
     buttonText: {
@@ -139,7 +125,8 @@ const styles = StyleSheet.create({
     },
     backText: {
         textAlign: 'center',
-        color: '#555',
+        color: '#fff',
         fontSize: 15,
+        textDecorationLine: 'underline',
     },
 });

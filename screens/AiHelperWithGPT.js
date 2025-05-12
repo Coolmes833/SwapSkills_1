@@ -9,6 +9,7 @@ import {
     ScrollView,
     Animated
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AiHelperWithGPT() {
     const [input, setInput] = useState('');
@@ -50,55 +51,43 @@ export default function AiHelperWithGPT() {
         }
     };
 
-
-    const animateTyping = (text) => {
-        let index = 0;
-        const typingInterval = setInterval(() => {
-            if (index < text.length) {
-                setResponse((prev) => prev + text[index]);
-                index++;
-            } else {
-                clearInterval(typingInterval);
-            }
-        }, 20);
-    };
-
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>AI Mentor with ChatGPT</Text>
+        <LinearGradient colors={['#5c83b3', '#3b5998', '#1f2f5a']} style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>AI Mentor with ChatGPT</Text>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Ask me anything (e.g. How to learn Python?)"
-                value={input}
-                onChangeText={setInput}
-                placeholderTextColor="#888"
-            />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Ask me anything (e.g. How to learn Python?)"
+                    value={input}
+                    onChangeText={setInput}
+                    placeholderTextColor="#f0f0f0"
+                />
 
-            <TouchableOpacity style={styles.button} onPress={handleAskGPT}>
-                <Text style={styles.buttonText}>🧠 Ask Mentor</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={handleAskGPT}>
+                    <Text style={styles.buttonText}>🧠 Ask Mentor</Text>
+                </TouchableOpacity>
 
-            {loading && (
-                <View style={styles.loadingWrapper}>
-                    <ActivityIndicator size="large" color="#673ab7" />
-                    <Text style={styles.typingText}>AI is typing...</Text>
-                </View>
-            )}
+                {loading && (
+                    <View style={styles.loadingWrapper}>
+                        <ActivityIndicator size="large" color="#ffffff" />
+                        <Text style={styles.typingText}>AI is typing...</Text>
+                    </View>
+                )}
 
-            {response !== '' && (
-                <View style={styles.responseContainer}>
-                    <Text style={styles.response}>{response}</Text>
-                </View>
-            )}
-        </ScrollView>
+                {response !== '' && (
+                    <View style={styles.responseContainer}>
+                        <Text style={styles.response}>{response}</Text>
+                    </View>
+                )}
+            </ScrollView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#f5f5f5',
         flexGrow: 1,
     },
     title: {
@@ -106,29 +95,25 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
-        color: '#3f51b5',
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
         textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
+        textShadowRadius: 3,
     },
     input: {
-        borderWidth: 1,
-        borderColor: '#bbb',
+        backgroundColor: '#ffffff90',
+        padding: 14,
         borderRadius: 12,
-        padding: 12,
         fontSize: 16,
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
+        color: '#fff',
+        marginBottom: 15,
     },
     button: {
-        backgroundColor: '#673ab7',
-        padding: 12,
+        backgroundColor: '#ff7f50',
+        padding: 14,
         borderRadius: 12,
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 10,
         elevation: 3,
     },
     buttonText: {
@@ -143,18 +128,18 @@ const styles = StyleSheet.create({
     },
     typingText: {
         marginLeft: 10,
-        color: '#555',
+        color: '#f0f0f0',
         fontStyle: 'italic',
     },
     responseContainer: {
         marginTop: 24,
-        backgroundColor: '#e0f2f1',
+        backgroundColor: '#ffffff20',
         padding: 16,
         borderRadius: 12,
     },
     response: {
         fontSize: 16,
         lineHeight: 22,
-        color: '#004d40',
+        color: '#fff',
     },
 });

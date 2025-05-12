@@ -44,7 +44,7 @@ export default function WelcomeScreen({ navigation }) {
                 <TextInput
                     style={styles.input}
                     placeholder="Email"
-                    placeholderTextColor="#ddd"
+                    placeholderTextColor="#f0f0f0"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
@@ -55,7 +55,7 @@ export default function WelcomeScreen({ navigation }) {
                     <TextInput
                         style={styles.passwordInput}
                         placeholder="Password"
-                        placeholderTextColor="#ddd"
+                        placeholderTextColor="#f0f0f0"
                         secureTextEntry={!showPassword}
                         value={password}
                         onChangeText={setPassword}
@@ -64,12 +64,11 @@ export default function WelcomeScreen({ navigation }) {
                         <FontAwesome
                             name={showPassword ? 'eye-slash' : 'eye'}
                             size={22}
-                            color="#ddd"
+                            color="#f0f0f0"
                         />
                     </TouchableOpacity>
                 </View>
 
-                {/* Forgot password yönlendirmesi */}
                 <TouchableOpacity onPress={() => navigation.navigate('ForgotPasswordScreen')}>
                     <Text style={styles.forgotText}>Forgot your password?</Text>
                 </TouchableOpacity>
@@ -78,6 +77,8 @@ export default function WelcomeScreen({ navigation }) {
             <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
                 <Text style={styles.signInButtonText}>Sign In</Text>
             </TouchableOpacity>
+
+            <View style={{ height: 15 }} /> {/* Butonlar arası boşluk */}
 
             <TouchableOpacity
                 style={styles.googleSignInButton}
@@ -143,8 +144,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     forgotText: {
-        color: '#ccc',
-        fontSize: 14,
+        color: '#eee',
+        fontSize: 13,
         textAlign: 'right',
         marginTop: 8,
     },
@@ -155,7 +156,6 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         width: '100%',
         alignItems: 'center',
-        marginBottom: 10,
     },
     signInButtonText: {
         color: '#fff',

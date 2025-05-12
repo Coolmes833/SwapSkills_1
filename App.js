@@ -70,17 +70,6 @@ function TabNavigator() {
       <Tab.Screen name="Search" component={SearchScreen} />
       <Tab.Screen name="AI Mentor GPT" component={AiHelperWithGPT} />
       <Tab.Screen name="Requests" component={Requests} />
-      <Tab.Screen
-        name="SignOut"
-        component={WelcomeScreen}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            Alert.alert('Logging Out');
-            navigation.navigate('WelcomeScreen');
-          },
-        })}
-      />
     </Tab.Navigator>
   );
 }

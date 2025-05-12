@@ -41,7 +41,7 @@ export default function CreateYourAccountScreen({ navigation }) {
                 <TextInput
                     style={styles.input}
                     placeholder="Email"
-                    placeholderTextColor="#ddd"
+                    placeholderTextColor="#f0f0f0"
                     keyboardType="email-address"
                     value={email}
                     onChangeText={text => setEmail(text)}
@@ -51,7 +51,7 @@ export default function CreateYourAccountScreen({ navigation }) {
                 <TextInput
                     style={styles.input}
                     placeholder="Password"
-                    placeholderTextColor="#ddd"
+                    placeholderTextColor="#f0f0f0"
                     secureTextEntry
                     value={password}
                     onChangeText={text => setPassword(text)}

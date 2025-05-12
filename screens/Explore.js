@@ -6,12 +6,13 @@ import {
     TouchableOpacity,
     Image,
     Alert,
-    ActivityIndicator,
+    ActivityIndicator
 } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
 import { FontAwesome } from '@expo/vector-icons';
 import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../fireBase';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Explore() {
     const swiperRef = useRef(null);
@@ -30,8 +31,7 @@ export default function Explore() {
                 }));
 
                 const likesSnapshot = await getDocs(collection(db, 'likes', currentUserId, 'users'));
-                const likedUserIds = likesSnapshot.docs
-                    .map(doc => doc.id);
+                const likedUserIds = likesSnapshot.docs.map(doc => doc.id);
 
                 const filtered = allUsers.filter(
                     user => user.id !== currentUserId && !likedUserIds.includes(user.id)
@@ -87,11 +87,11 @@ export default function Explore() {
     const isOutOfUsers = cardIndex >= users.length;
 
     return (
-        <View style={styles.container}>
+        <LinearGradient colors={['#5c83b3', '#3b5998', '#1f2f5a']} style={styles.container}>
             <Text style={styles.header}>Explore Users</Text>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0000ff" />
+                <ActivityIndicator size="large" color="#fff" />
             ) : users.length > 0 ? (
                 <View style={styles.swiperWrapper}>
                     <Swiper
@@ -138,7 +138,7 @@ export default function Explore() {
                     />
                 </View>
             ) : (
-                <Text>No users found.</Text>
+                <Text style={styles.noUsersText}>No users found.</Text>
             )}
 
             {isOutOfUsers && !loading && (
@@ -157,21 +157,22 @@ export default function Explore() {
                     </TouchableOpacity>
                 </View>
             )}
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
         paddingTop: 50,
+        paddingHorizontal: 16,
     },
     header: {
         fontSize: 28,
         fontWeight: 'bold',
+        color: '#fff',
         marginBottom: 20,
+        textAlign: 'center',
     },
     swiperWrapper: {
         height: 500,
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
     card: {
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#ffffffee',
         borderRadius: 15,
         width: 300,
         height: 420,
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         marginBottom: 10,
+        color: '#222',
     },
     cardLabel: {
         fontWeight: '600',
@@ -218,12 +220,18 @@ const styles = StyleSheet.create({
     outOfUsersContainer: {
         marginTop: 40,
         padding: 20,
-        backgroundColor: '#eee',
+        backgroundColor: '#ffffff20',
         borderRadius: 10,
     },
     outOfUsersText: {
         fontSize: 16,
         fontWeight: '500',
+        color: '#fff',
+    },
+    noUsersText: {
+        color: '#fff',
+        textAlign: 'center',
+        fontSize: 16,
     },
     buttonsContainer: {
         flexDirection: 'row',
@@ -236,10 +244,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#db4437',
         padding: 20,
         borderRadius: 50,
+        elevation: 4,
     },
     acceptButton: {
         backgroundColor: '#34a853',
         padding: 20,
         borderRadius: 50,
+        elevation: 4,
     },
 });

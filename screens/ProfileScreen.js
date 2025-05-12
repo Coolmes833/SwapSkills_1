@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, StyleSheet, TextInput, TouchableOpacity,
-    Alert, Image, ScrollView, Linking
+    Alert, Image, ScrollView, Linking, Animated
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
-import { db } from '../fireBase';
+import { getAuth, signOut } from 'firebase/auth';
+import { auth, db } from '../fireBase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToCloudinary } from '../CloudinaryUpload.js';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [skillsInput, setSkillsInput] = useState('');
@@ -29,11 +30,11 @@ export default function ProfileScreen() {
     const [profileImage, setProfileImage] = useState(null);
     const [wantToLearnInput, setWantToLearnInput] = useState('');
     const [wantToLearn, setWantToLearn] = useState([]);
-    const [saveFeedback, setSaveFeedback] = useState('');
+    const [showToast, setShowToast] = useState(false);
+    const toastOpacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        const auth = getAuth();
-        const currentUser = auth.currentUser;
+        const currentUser = getAuth().currentUser;
         if (currentUser) setUserId(currentUser.uid);
     }, []);
 
@@ -78,6 +79,7 @@ export default function ProfileScreen() {
             });
         })();
     }, []);
+
     const handleAddSkill = () => {
         if (skillsInput.trim()) {
             setSkills([...skills, skillsInput.trim()]);
@@ -121,8 +123,21 @@ export default function ProfileScreen() {
                 profileImage,
                 wantToLearn,
             });
-            setSaveFeedback('✅ Profile updated successfully!');
-            setTimeout(() => setSaveFeedback(''), 3000);
+
+            setShowToast(true);
+            Animated.timing(toastOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => {
+                setTimeout(() => {
+                    Animated.timing(toastOpacity, {
+                        toValue: 0,
+                        duration: 300,
+                        useNativeDriver: true,
+                    }).start(() => setShowToast(false));
+                }, 2000);
+            });
         } catch (err) {
             console.error('Save error:', err);
             Alert.alert('Error', 'Failed to save profile.');
@@ -153,130 +168,208 @@ export default function ProfileScreen() {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.header}>MY PROFILE</Text>
+        <LinearGradient colors={['#5c83b3', '#3b5998', '#1f2f5a']} style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.header}>MY PROFILE</Text>
 
-            <TouchableOpacity style={styles.profileImageContainer} onPress={handleImagePick}>
-                {profileImage ? (
-                    <Image source={{ uri: profileImage }} style={styles.profileImage} />
-                ) : (
-                    <FontAwesome name="camera" size={30} color="#000" />
-                )}
-            </TouchableOpacity>
-
-            <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} />
-            <TextInput style={[styles.input, styles.textArea]} placeholder="Description" value={description} onChangeText={setDescription} multiline />
-
-            <TextInput style={styles.input} placeholder="City" value={city} onChangeText={setCity} />
-            <TextInput style={styles.input} placeholder="Country" value={country} onChangeText={setCountry} />
-            {/* Skills */}
-            <View style={styles.skillInputRow}>
-                <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Add a skill"
-                    value={skillsInput}
-                    onChangeText={setSkillsInput}
-                    onSubmitEditing={handleAddSkill}
-                />
-                <TouchableOpacity onPress={handleAddSkill} style={styles.addButton}>
-                    <Text style={styles.addButtonText}>+</Text>
+                <TouchableOpacity style={styles.profileImageContainer} onPress={handleImagePick}>
+                    {profileImage ? (
+                        <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                    ) : (
+                        <FontAwesome name="camera" size={30} color="#000" />
+                    )}
                 </TouchableOpacity>
-            </View>
-            <View style={styles.tagsContainer}>
-                {skills.map((skill, index) => (
-                    <TouchableOpacity key={index} style={styles.tag} onPress={() => handleRemoveSkill(index)}>
-                        <Text style={styles.tagText}>{skill} ✕</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
 
-            {/* Want to Learn */}
-            <View style={styles.skillInputRow}>
-                <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Want to Learn"
-                    value={wantToLearnInput}
-                    onChangeText={setWantToLearnInput}
-                    onSubmitEditing={() => {
+                <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#f0f0f0" value={name} onChangeText={setName} />
+                <TextInput style={[styles.input, styles.textArea]} placeholder="Description" placeholderTextColor="#f0f0f0" value={description} onChangeText={setDescription} multiline />
+                <TextInput style={styles.input} placeholder="City" placeholderTextColor="#f0f0f0" value={city} onChangeText={setCity} />
+                <TextInput style={styles.input} placeholder="Country" placeholderTextColor="#f0f0f0" value={country} onChangeText={setCountry} />
+                <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#f0f0f0" keyboardType="numeric" value={age} onChangeText={setAge} />
+                <Picker selectedValue={gender} onValueChange={setGender} style={styles.picker}>
+                    <Picker.Item label="Select Gender" value="" />
+                    <Picker.Item label="Male" value="male" />
+                    <Picker.Item label="Female" value="female" />
+                </Picker>
+
+                <View style={styles.skillInputRow}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Add a skill" placeholderTextColor="#f0f0f0" value={skillsInput} onChangeText={setSkillsInput} onSubmitEditing={handleAddSkill} />
+                    <TouchableOpacity onPress={handleAddSkill} style={styles.addButton}>
+                        <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.tagsContainer}>
+                    {skills.map((skill, index) => (
+                        <TouchableOpacity key={index} style={styles.tag} onPress={() => handleRemoveSkill(index)}>
+                            <Text style={styles.tagText}>{skill} ✕</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <View style={styles.skillInputRow}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Want to Learn" placeholderTextColor="#f0f0f0" value={wantToLearnInput} onChangeText={setWantToLearnInput} onSubmitEditing={() => {
                         if (wantToLearnInput.trim()) {
                             setWantToLearn([...wantToLearn, wantToLearnInput.trim()]);
                             setWantToLearnInput('');
                         }
+                    }} />
+                    <TouchableOpacity onPress={() => {
+                        if (wantToLearnInput.trim()) {
+                            setWantToLearn([...wantToLearn, wantToLearnInput.trim()]);
+                            setWantToLearnInput('');
+                        }
+                    }} style={styles.addButton}>
+                        <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.tagsContainer}>
+                    {wantToLearn.map((item, index) => (
+                        <TouchableOpacity key={index} style={styles.tag} onPress={() => setWantToLearn(wantToLearn.filter((_, i) => i !== index))}>
+                            <Text style={styles.tagText}>{item} ✕</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <View style={styles.skillInputRow}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Add a link (https://...)" placeholderTextColor="#f0f0f0" value={urlInput} onChangeText={setUrlInput} onSubmitEditing={handleAddUrl} />
+                    <TouchableOpacity onPress={handleAddUrl} style={styles.addButton}>
+                        <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.tagsContainer}>
+                    {urls.map((url, index) => (
+                        <TouchableOpacity key={index} style={styles.tag} onPress={() => Linking.openURL(url)}>
+                            <Text style={styles.tagText}>{url.length > 30 ? url.slice(0, 30) + '...' : url}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {location && (
+                    <>
+                        <MapView style={styles.map} region={{ ...location, latitudeDelta: 0.005, longitudeDelta: 0.005 }}>
+                            <Marker coordinate={location} title="Your Location" />
+                        </MapView>
+                        <Text style={styles.locationText}>
+                            You are here: {city || 'Your City'}, {country || 'Your Country'}
+                        </Text>
+                    </>
+                )}
+
+                <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                    <Text style={styles.saveButtonText}>Save Profile</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={async () => {
+                        try {
+                            await signOut(auth);
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: 'WelcomeScreen' }],
+                            });
+                        } catch (err) {
+                            Alert.alert('Logout Error', err.message);
+                        }
                     }}
-                />
-                <TouchableOpacity onPress={() => {
-                    if (wantToLearnInput.trim()) {
-                        setWantToLearn([...wantToLearn, wantToLearnInput.trim()]);
-                        setWantToLearnInput('');
-                    }
-                }} style={styles.addButton}>
-                    <Text style={styles.addButtonText}>+</Text>
+                >
+                    <Text style={styles.logoutText}>Sign Out</Text>
                 </TouchableOpacity>
-            </View>
-            <View style={styles.tagsContainer}>
-                {wantToLearn.map((item, index) => (
-                    <TouchableOpacity key={index} style={styles.tag} onPress={() => setWantToLearn(wantToLearn.filter((_, i) => i !== index))}>
-                        <Text style={styles.tagText}>{item} ✕</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
 
-            {/* URLs */}
-            <View style={styles.skillInputRow}>
-                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Add a link (https://...)" value={urlInput} onChangeText={setUrlInput} onSubmitEditing={handleAddUrl} />
-                <TouchableOpacity onPress={handleAddUrl} style={styles.addButton}>
-                    <Text style={styles.addButtonText}>+</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.tagsContainer}>
-                {urls.map((url, index) => (
-                    <TouchableOpacity key={index} style={styles.tag} onPress={() => Linking.openURL(url)}>
-                        <Text style={styles.tagText}>{url.length > 30 ? url.slice(0, 30) + '...' : url}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            <TextInput style={styles.input} placeholder="Age" keyboardType="numeric" value={age} onChangeText={setAge} />
-            <Picker selectedValue={gender} onValueChange={setGender} style={styles.picker}>
-                <Picker.Item label="Select Gender" value="" />
-                <Picker.Item label="Male" value="male" />
-                <Picker.Item label="Female" value="female" />
-            </Picker>
-
-            {location && (
-                <MapView style={styles.map} region={{ ...location, latitudeDelta: 0.005, longitudeDelta: 0.005 }}>
-                    <Marker coordinate={location} title="Your Location" />
-                </MapView>
-            )}
-
-            {saveFeedback !== '' && <Text style={styles.successText}>{saveFeedback}</Text>}
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save Profile</Text>
-            </TouchableOpacity>
-        </ScrollView>
+                {showToast && (
+                    <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
+                        <Text style={styles.toastText}>✅ Profile updated!</Text>
+                    </Animated.View>
+                )}
+            </ScrollView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 20, backgroundColor: '#f5f5f5', flexGrow: 1 },
-    header: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+    container: { flexGrow: 1, padding: 20, backgroundColor: 'transparent' },
+    header: { fontSize: 28, fontWeight: 'bold', marginBottom: 25, textAlign: 'center', color: '#fff' },
     profileImageContainer: {
-        alignSelf: 'center', marginBottom: 20, width: 120, height: 120, borderRadius: 60,
-        backgroundColor: '#ddd', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        alignSelf: 'center',
+        marginBottom: 25,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#ffffff30',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#fff',
     },
     profileImage: { width: 120, height: 120, borderRadius: 60 },
-    input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 15, fontSize: 16 },
-    textArea: { height: 100 },
-    skillInputRow: { flexDirection: 'row', alignItems: 'center' },
-    addButton: { backgroundColor: '#4caf50', padding: 12, borderRadius: 8, marginLeft: 10 },
+    input: {
+        backgroundColor: '#ffffff90',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 15,
+        fontSize: 16,
+        color: '#fff',
+    },
+    textArea: { height: 100, textAlignVertical: 'top' },
+    skillInputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    addButton: {
+        backgroundColor: '#4285F4',
+        padding: 12,
+        borderRadius: 10,
+        marginLeft: 10,
+        elevation: 3,
+    },
     addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
     tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 },
-    tag: { backgroundColor: '#e0e0e0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8, marginBottom: 8 },
-    tagText: { fontSize: 14, color: '#333' },
-    picker: { backgroundColor: '#fff', borderRadius: 8, marginBottom: 15 },
-    map: { width: '100%', height: 200, marginBottom: 20, borderRadius: 10 },
-    saveButton: { backgroundColor: '#4CAF50', paddingVertical: 14, alignItems: 'center', borderRadius: 8 },
+    tag: {
+        backgroundColor: '#ffffff40',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginRight: 8,
+        marginBottom: 8,
+    },
+    tagText: { fontSize: 14, color: '#fff' },
+    picker: { backgroundColor: '#ffffff90', borderRadius: 12, marginBottom: 15, color: '#fff' },
+    map: { width: '100%', height: 200, marginBottom: 10, borderRadius: 12 },
+    locationText: {
+        color: '#fff',
+        textAlign: 'center',
+        marginBottom: 20,
+        fontSize: 14,
+        fontStyle: 'italic',
+    },
+    saveButton: {
+        backgroundColor: '#ff7f50',
+        paddingVertical: 16,
+        alignItems: 'center',
+        borderRadius: 12,
+        marginBottom: 30,
+        elevation: 4,
+    },
     saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    successText: { textAlign: 'center', color: 'green', marginBottom: 15, fontSize: 16 }
+    toast: {
+        position: 'absolute',
+        bottom: 100,
+        alignSelf: 'center',
+        backgroundColor: '#333',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 20,
+        zIndex: 999,
+    },
+    toastText: { color: '#fff', fontWeight: 'bold', },
+    logoutButton: {
+        marginTop: 20,
+        backgroundColor: '#ff5252',
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    logoutText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
+
